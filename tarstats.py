@@ -9,17 +9,20 @@ from json import dumps, JSONEncoder
 class StatsEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Stats):
-            return {"name": obj.name,
-                    "size": obj.size,
-                    "filecounter": obj.filecounter,
-                    "dircounter": obj.dircounter,
-                    "linkcounter": obj.linkcounter
-                    }
+            return {
+                "type": "total" if obj.total else "archive"
+                "name": obj.name,
+                "size": obj.size,
+                "filecounter": obj.filecounter,
+                "dircounter": obj.dircounter,
+                "linkcounter": obj.linkcounter
+                }
         return JSONEncoder.default(self, obj)
 
 
 class Stats:
-    def __init__(self, name):
+    def __init__(self, name, total=False):
+        self.total = total
         self.name = name
         self.filecounter = 0
         self.dircounter = 0
@@ -38,11 +41,11 @@ Link: {self.linkcounter}
         if not isinstance(other, Stats):
             raise TypeError("other object must be an instance of Stats.")
 
+        self.total = True
         self.size += other.size
         self.filecounter += other.filecounter
         self.dircounter += other.dircounter
         self.linkcounter += other.linkcounter
-
         return self
 
 
@@ -68,7 +71,7 @@ def tarstat(filename):
 
 
 def tarstats(filenames, json, totals):
-    summary = Stats("total")
+    summary = Stats("total", total=True)
 
     for name in filenames:
         try:
