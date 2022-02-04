@@ -2,7 +2,7 @@
 
 import argparse
 import tarfile
-from  sys import exit
+from sys import exit
 from json import dumps, JSONEncoder
 from typing import Any, List
 from os import stat
@@ -11,6 +11,7 @@ from os import stat
 class StatsEncoder(JSONEncoder):
     """ Helper class for json.dumps(..., cls=StatsEncoder).
         Returns a JSON representation of a Stats object. """
+
     def default(self, obj: Any) -> Any:
         if isinstance(obj, Stats):
             return {
@@ -29,6 +30,7 @@ class StatsEncoder(JSONEncoder):
 
 class Stats:
     """ Stats is a value object designed to hold statistics gathered from a tarfile. """
+
     def __init__(self, name: str, total: bool = False):
         self.total = total
         self.name = name
@@ -73,7 +75,7 @@ devices: {self.devcounter}
         self.dircounter += other.dircounter
         self.symlinkcounter += other.symlinkcounter
         self.hardlinkcounter += other.hardlinkcounter
-        self.devcounter =+ other.devcounter
+        self.devcounter += other.devcounter
         return self
 
 
