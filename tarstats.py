@@ -1,14 +1,16 @@
 #! /usr/bin/env python3
 
+import argparse
+import sys
 import tarfile
-import click
 from json import dumps, JSONEncoder
 
 
 class StatsEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Stats):
-            return {"size": obj.size,
+            return {"name": obj.name,
+                    "size": obj.size,
                     "filecounter": obj.filecounter,
                     "dircounter": obj.dircounter,
                     "linkcounter": obj.linkcounter
@@ -17,32 +19,32 @@ class StatsEncoder(JSONEncoder):
 
 
 class Stats:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.filecounter = 0
         self.dircounter = 0
         self.linkcounter = 0
         self.size = 0
 
     def __str__(self):
-        return f"""Total: {self.size}
+        return f"""Name: {self.name}
+Total: {self.size}
 Files: {self.filecounter}
 Dirs: {self.dircounter}
 Link: {self.linkcounter}
 """
 
-    def __repr__(self):
-        return f"{self.size=} {self.filecounter=} {self.dircounter=} {self.linkcounter}"
 
+def tarstats(filenames, json):
+    for name in filenames:
+        try:
+            with tarfile.open(name, "r") as t:
+                info = t.getmembers()
+        except FileNotFoundError as e:
+            print(f"Can't read '{name}': {e}", file=sys.stderr)
+            sys.exit(1)
 
-@click.command()
-@click.argument('filename', type=click.Path(exists=True), nargs=-1)
-@click.option('-j', '--json/--no-json', default=False, help="Print the tar stats as JSON.")
-def tarstats(filename, json):
-    for name in filename:
-        with tarfile.open(name, "r") as t:
-            info = t.getmembers()
-
-        stats = Stats()
+        stats = Stats(name)
         for file in info:
             if file.isfile():
                 stats.size += file.size
@@ -60,5 +62,13 @@ def tarstats(filename, json):
             print(stats)
 
 
+def main():
+    parser = argparse.ArgumentParser(description="Print some stats about tarfiles.")
+    parser.add_argument("-j", "--json", help="Print the stats as json.", action="store_true")
+    parser.add_argument("tarfile", help="A tarfile to print stats on.", type=str, nargs='+')
+    args = parser.parse_args()
+    tarstats(args.tarfile, args.json)
+
+
 if __name__ == "__main__":
-    tarstats()
+    main()
