@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 
 import argparse
-import sys
 import tarfile
+from  sys import exit
 from json import dumps, JSONEncoder
 from typing import Any, List
+from os import stat
 
 
 class StatsEncoder(JSONEncoder):
@@ -16,6 +17,7 @@ class StatsEncoder(JSONEncoder):
                 "type": "total" if obj.total else "archive",
                 "name": obj.name,
                 "size": obj.size,
+                "filesize": obj.filesize,
                 "files": obj.filecounter,
                 "dirs": obj.dircounter,
                 "symlinks": obj.symlinkcounter,
@@ -31,6 +33,7 @@ class Stats:
         self.total = total
         self.name = name
         self.size = 0
+        self.filesize = 0
         self.filecounter = 0
         self.dircounter = 0
         self.symlinkcounter = 0
@@ -45,6 +48,7 @@ class Stats:
         return f"""type: {is_total}
 name: {self.name}
 size: {self.size}
+filesize: {self.filesize}
 files: {self.filecounter}
 dirs: {self.dircounter}
 symlinks: {self.symlinkcounter}
@@ -64,6 +68,7 @@ devices: {self.devcounter}
             raise TypeError("other object must be an instance of Stats.")
 
         self.size += other.size
+        self.filesize += other.filesize
         self.filecounter += other.filecounter
         self.dircounter += other.dircounter
         self.symlinkcounter += other.symlinkcounter
@@ -103,6 +108,9 @@ def tarstat(filename: str) -> Stats:
         if file.isdev():
             stats.devcounter += 1
 
+    st = stat(filename)
+    stats.filesize = st.st_size
+
     return stats
 
 
@@ -125,7 +133,7 @@ def tarstats(filenames: List[str], json: bool, totals: bool):
             stats = tarstat(name)
         except FileNotFoundError as e:
             print(f"Can't read '{name}': {e}", file=sys.stderr)
-            sys.exit(1)
+            exit(1)
 
         # Print intermediate results
         if json:
