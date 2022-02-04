@@ -18,7 +18,9 @@ class StatsEncoder(JSONEncoder):
                 "size": obj.size,
                 "files": obj.filecounter,
                 "dirs": obj.dircounter,
-                "symlinks": obj.symlinkcounter
+                "symlinks": obj.symlinkcounter,
+                "hardlinks": obj.hardlinkcounter,
+                "dev": obj.devcounter,
             }
         return JSONEncoder.default(self, obj)
 
@@ -28,14 +30,17 @@ class Stats:
     def __init__(self, name: str, total: bool = False):
         self.total = total
         self.name = name
+        self.size = 0
         self.filecounter = 0
         self.dircounter = 0
         self.symlinkcounter = 0
-        self.size = 0
+        self.hardlinkcounter = 0
+        self.devcounter = 0
 
     def __str__(self) -> str:
         """ Return a printable version of the value object, as k/v pairs, one per line.
-            The keynames match the JSON representation by StatsJSONEncoder, literally. """
+            The keynames match the JSON representation by StatsJSONEncoder, literally.
+            """
         is_total = "total" if self.total else "archive"
         return f"""type: {is_total}
 name: {self.name}
@@ -43,11 +48,13 @@ size: {self.size}
 files: {self.filecounter}
 dirs: {self.dircounter}
 symlinks: {self.symlinkcounter}
+hardlinks: {self.hardlinkcounter}
+devices: {self.devcounter}
 """
 
     def __add__(self, other: Any):
-        """ This method allows us to add two Stats objects. The summary counters of self
-            are incremented by the summary counters of other.
+        """ This method allows us to add two `Stats` objects. The summary counters of `self`
+            are incremented by the summary counters of `other`.
 
             Note: self.name is not changed. self.total is not set to True.
             If the self instance is supposed to be a total, you need to make the
@@ -60,6 +67,8 @@ symlinks: {self.symlinkcounter}
         self.filecounter += other.filecounter
         self.dircounter += other.dircounter
         self.symlinkcounter += other.symlinkcounter
+        self.hardlinkcounter += other.hardlinkcounter
+        self.devcounter =+ other.devcounter
         return self
 
 
@@ -87,6 +96,12 @@ def tarstat(filename: str) -> Stats:
 
         if file.issym():
             stats.symlinkcounter += 1
+
+        if file.islnk():
+            stats.hardlinkcounter += 1
+
+        if file.isdev():
+            stats.devcounter += 1
 
     return stats
 
