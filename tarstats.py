@@ -4,24 +4,25 @@ import argparse
 import sys
 import tarfile
 from json import dumps, JSONEncoder
+from typing import Any, List
 
 
 class StatsEncoder(JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, Stats):
             return {
-                "type": "total" if obj.total else "archive"
+                "type": "total" if obj.total else "archive",
                 "name": obj.name,
                 "size": obj.size,
                 "filecounter": obj.filecounter,
                 "dircounter": obj.dircounter,
                 "linkcounter": obj.linkcounter
-                }
+            }
         return JSONEncoder.default(self, obj)
 
 
 class Stats:
-    def __init__(self, name, total=False):
+    def __init__(self, name: str, total: bool = False):
         self.total = total
         self.name = name
         self.filecounter = 0
@@ -29,7 +30,7 @@ class Stats:
         self.linkcounter = 0
         self.size = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"""Name: {self.name}
 Total: {self.size}
 Files: {self.filecounter}
@@ -37,7 +38,7 @@ Dirs: {self.dircounter}
 Link: {self.linkcounter}
 """
 
-    def __add__(self, other):
+    def __add__(self, other: Any):
         if not isinstance(other, Stats):
             raise TypeError("other object must be an instance of Stats.")
 
@@ -49,7 +50,7 @@ Link: {self.linkcounter}
         return self
 
 
-def tarstat(filename):
+def tarstat(filename: str) -> Stats:
     with tarfile.open(filename, "r") as t:
         info = t.getmembers()
 
@@ -70,7 +71,7 @@ def tarstat(filename):
     return stats
 
 
-def tarstats(filenames, json, totals):
+def tarstats(filenames: List[str], json: bool, totals: bool):
     summary = Stats("total", total=True)
 
     for name in filenames:
