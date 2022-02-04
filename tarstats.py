@@ -34,40 +34,72 @@ Dirs: {self.dircounter}
 Link: {self.linkcounter}
 """
 
+    def __add__(self, other):
+        if not isinstance(other, Stats):
+            raise TypeError("other object must be an instance of Stats.")
 
-def tarstats(filenames, json):
+        self.size += other.size
+        self.filecounter += other.filecounter
+        self.dircounter += other.dircounter
+        self.linkcounter += other.linkcounter
+
+        return self
+
+
+def tarstat(filename):
+    with tarfile.open(filename, "r") as t:
+        info = t.getmembers()
+
+    # info is now a list of TarfileInfo objects.
+    # We go through them to add them up.
+    stats = Stats(filename)
+    for file in info:
+        if file.isfile():
+            stats.size += file.size
+            stats.filecounter = + 1
+
+        if file.isdir():
+            stats.dircounter += 1
+
+        if file.issym():
+            stats.linkcounter += 1
+
+    return stats
+
+
+def tarstats(filenames, json, totals):
+    summary = Stats("total")
+
     for name in filenames:
         try:
-            with tarfile.open(name, "r") as t:
-                info = t.getmembers()
+            stats = tarstat(name)
         except FileNotFoundError as e:
             print(f"Can't read '{name}': {e}", file=sys.stderr)
             sys.exit(1)
 
-        stats = Stats(name)
-        for file in info:
-            if file.isfile():
-                stats.size += file.size
-                stats.filecounter = + 1
-
-            if file.isdir():
-                stats.dircounter += 1
-
-            if file.issym():
-                stats.linkcounter += 1
-
+        # Print intermediate results
         if json:
             print(dumps(stats, cls=StatsEncoder))
         else:
             print(stats)
 
+        if totals:
+            summary = summary + stats
+
+    if totals:
+        if json:
+            print(dumps(summary, cls=StatsEncoder))
+        else:
+            print(summary)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Print some stats about tarfiles.")
     parser.add_argument("-j", "--json", help="Print the stats as json.", action="store_true")
+    parser.add_argument("-t", "--totals", help="Also print a total over all tarfiles.", action="store_true")
     parser.add_argument("tarfile", help="A tarfile to print stats on.", type=str, nargs='+')
     args = parser.parse_args()
-    tarstats(args.tarfile, args.json)
+    tarstats(args.tarfile, args.json, args.totals)
 
 
 if __name__ == "__main__":
