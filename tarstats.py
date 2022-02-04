@@ -80,7 +80,7 @@ def tarstat(filename: str) -> Stats:
     for file in info:
         if file.isfile():
             stats.size += file.size
-            stats.filecounter = + 1
+            stats.filecounter += 1
 
         if file.isdir():
             stats.dircounter += 1
