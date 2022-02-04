@@ -4,7 +4,11 @@ A simple Python commandline application that collects statistics about tarfiles.
 
 ## Installation
 
+```console
 $ pip3 install .
+```
+
+The dot after `install` is important.
 
 ## Usage
 
