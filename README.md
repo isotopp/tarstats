@@ -33,25 +33,29 @@ Get stats:
 
 ```console
 $ tarstats testtar.tgz
-Name: testtar.tgz
-Total: 112640
-Files: 1
-Dirs: 1
-Link: 1
+type: archive
+name: testtar.tgz
+size: 112640
+filesize: 547
+files: 2
+dirs: 1
+symlinks: 1
+hardlinks: 0
+devices: 0
 ```
 
 Get stats in json:
 
 ```
 $ tarstats -j testtar.tgz
-{"name": "testtar.tgz", "size": 112640, "filecounter": 1, "dircounter": 1, "linkcounter": 1}
+{"type": "archive", "name": "testtar.tgz", "size": 112640, "filesize": 547, "files": 2, "dirs": 1, "symlinks": 1, "hardlinks": 0, "dev": 0}
 ```
 
 Get stats (in json) for more than one file + totals:
 
 ```console
-$ tarstats -j -t testtar.tgz testtar.tgz
-{"name": "testtar.tgz", "size": 112640, "filecounter": 1, "dircounter": 1, "linkcounter": 1}
-{"name": "testtar.tgz", "size": 112640, "filecounter": 1, "dircounter": 1, "linkcounter": 1}
-{"name": "total", "size": 225280, "filecounter": 2, "dircounter": 2, "linkcounter": 2}
+$ tarstats -tj testtar.tgz testtar.tgz
+{"type": "archive", "name": "testtar.tgz", "size": 112640, "filesize": 547, "files": 2, "dirs": 1, "symlinks": 1, "hardlinks": 0, "dev": 0}
+{"type": "archive", "name": "testtar.tgz", "size": 112640, "filesize": 547, "files": 2, "dirs": 1, "symlinks": 1, "hardlinks": 0, "dev": 0}
+{"type": "total", "name": "total", "size": 225280, "filesize": 1094, "files": 4, "dirs": 2, "symlinks": 2, "hardlinks": 0, "dev": 0}
 ```
