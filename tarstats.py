@@ -8,49 +8,69 @@ from typing import Any, List
 
 
 class StatsEncoder(JSONEncoder):
+    """ Helper class for json.dumps(..., cls=StatsEncoder).
+        Returns a JSON representation of a Stats object. """
     def default(self, obj: Any) -> Any:
         if isinstance(obj, Stats):
             return {
                 "type": "total" if obj.total else "archive",
                 "name": obj.name,
                 "size": obj.size,
-                "filecounter": obj.filecounter,
-                "dircounter": obj.dircounter,
-                "linkcounter": obj.linkcounter
+                "files": obj.filecounter,
+                "dirs": obj.dircounter,
+                "symlinks": obj.symlinkcounter
             }
         return JSONEncoder.default(self, obj)
 
 
 class Stats:
+    """ Stats is a value object designed to hold statistics gathered from a tarfile. """
     def __init__(self, name: str, total: bool = False):
         self.total = total
         self.name = name
         self.filecounter = 0
         self.dircounter = 0
-        self.linkcounter = 0
+        self.symlinkcounter = 0
         self.size = 0
 
     def __str__(self) -> str:
-        return f"""Name: {self.name}
-Total: {self.size}
-Files: {self.filecounter}
-Dirs: {self.dircounter}
-Link: {self.linkcounter}
+        """ Return a printable version of the value object, as k/v pairs, one per line.
+            The keynames match the JSON representation by StatsJSONEncoder, literally. """
+        is_total = "total" if self.total else "archive"
+        return f"""type: {is_total}
+name: {self.name}
+size: {self.size}
+files: {self.filecounter}
+dirs: {self.dircounter}
+symlinks: {self.symlinkcounter}
 """
 
     def __add__(self, other: Any):
+        """ This method allows us to add two Stats objects. The summary counters of self
+            are incremented by the summary counters of other.
+
+            Note: self.name is not changed. self.total is not set to True.
+            If the self instance is supposed to be a total, you need to make the
+            required adjustments manually.
+            """
         if not isinstance(other, Stats):
             raise TypeError("other object must be an instance of Stats.")
 
-        self.total = True
         self.size += other.size
         self.filecounter += other.filecounter
         self.dircounter += other.dircounter
-        self.linkcounter += other.linkcounter
+        self.symlinkcounter += other.symlinkcounter
         return self
 
 
 def tarstat(filename: str) -> Stats:
+    """
+    Read and parse a tarfile, return summary counters of the content.
+
+    :param filename: The filename of a tar archive that is supposed
+                     to be parseable by Python's tarfile module.
+    :return: A Stats instance that contains summary counters about the tar archives content.
+    """
     with tarfile.open(filename, "r") as t:
         info = t.getmembers()
 
@@ -66,12 +86,23 @@ def tarstat(filename: str) -> Stats:
             stats.dircounter += 1
 
         if file.issym():
-            stats.linkcounter += 1
+            stats.symlinkcounter += 1
 
     return stats
 
 
 def tarstats(filenames: List[str], json: bool, totals: bool):
+    """
+    Goes through a list of filenames, and executes tarstat() on each.
+    Prints a representation of the Stats object for each archive,
+    in json format if the json flag is True.
+    Also maintains a summary object if totals is True, and
+    prints this at the end, in json, if the json flag is True.
+
+    :param filenames: a List of filenames.
+    :param json: if set, the output will be in json format.
+    :param totals: if set, a summary object will be printed as well.
+    """
     summary = Stats("total", total=True)
 
     for name in filenames:
@@ -88,7 +119,7 @@ def tarstats(filenames: List[str], json: bool, totals: bool):
             print(stats)
 
         if totals:
-            summary = summary + stats
+            summary += stats
 
     if totals:
         if json:
