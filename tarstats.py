@@ -2,17 +2,20 @@
 
 import argparse
 import tarfile
-from sys import exit
+from sys import exit, stderr
 from json import dumps, JSONEncoder
-from typing import Any, List
+from typing import Any, List, Optional
 from os import stat
 
+args:Optional[argparse.Namespace] = None
 
 class StatsEncoder(JSONEncoder):
     """ Helper class for json.dumps(..., cls=StatsEncoder).
         Returns a JSON representation of a Stats object. """
 
     def default(self, obj: Any) -> Any:
+
+        # Not checking args.human here on purpose - json is never intended for humans
         if isinstance(obj, Stats):
             return {
                 "type": "total" if obj.total else "archive",
@@ -49,14 +52,64 @@ class Stats:
         is_total = "total" if self.total else "archive"
         return f"""type: {is_total}
 name: {self.name}
-size: {self.size}
-filesize: {self.filesize}
-files: {self.filecounter}
-dirs: {self.dircounter}
-symlinks: {self.symlinkcounter}
-hardlinks: {self.hardlinkcounter}
-devices: {self.devcounter}
+size: {self.human_rounded_units(self.size)}
+filesize: {self.human_rounded_units(self.filesize)}
+files: {self.human_thousand_sep(self.filecounter)}
+dirs: {self.human_thousand_sep(self.dircounter)}
+symlinks: {self.human_thousand_sep(self.symlinkcounter)}
+hardlinks: {self.human_thousand_sep(self.hardlinkcounter)}
+devices: {self.human_thousand_sep(self.devcounter)}
 """
+
+    def human_thousand_sep(self, number: int) -> str:
+        """
+        When args.human is True, format an integer with thousands separators, returning a string.
+        That is the integer 1000000 becomes the string "1.000.000".
+        When args.human is False, return the integer as a string without formatting.
+
+        :param number: The integer to be formatted.
+        :return: The resulting string.
+        """
+        if not args.human:
+            return str(number)
+
+        return f"{number:,}"
+
+    def human_rounded_units(self, number: int) -> str:
+        """
+        When args.human is True, format an integer into a human readable rounded string.
+        That is the integer 1234 becomes the string "1k".
+        When args.human is False, return the integer as a string without rounding and formatting.
+
+        :param number: The value to be converted, supposed to be an integer.
+        :return: the rounded value as a string.
+        """
+        if not args.human:
+            return str(number)
+
+        units = "KMGTPEZY"  # kilo mega giga tera peta exa zetta yotta
+
+        # Won't handle negatives, which is ok, because we only deal in counters
+        if number < 0:
+            raise ValueError("negative numbers not supported")
+
+        counter = 0
+        while number > 1000:
+            # each time we reduce by 1000, increment the unit name
+            number = number // 1000
+            counter += 1
+
+        # Past Yotta is unsupported
+        if counter >= len(units):
+            raise ValueError("maximum suppoered range exceeded")
+
+        res = str(number)
+        # if it is > 1000, and below 999 Yotta, we are good
+        if counter > 0 and counter < len(units):
+            res += units[counter-1]
+
+        return res
+
 
     def __add__(self, other: Any):
         """ This method allows us to add two `Stats` objects. The summary counters of `self`
@@ -154,11 +207,19 @@ def tarstats(filenames: List[str], json: bool, totals: bool):
 
 
 def main():
+    global args # bah!
+
     parser = argparse.ArgumentParser(description="Print some stats about tarfiles.")
     parser.add_argument("-j", "--json", help="Print the stats as json.", action="store_true")
+    parser.add_argument("-H", "--human", help="Print numbers with rounded units or thousand separators", action="store_true")
     parser.add_argument("-t", "--totals", help="Also print a total over all tarfiles.", action="store_true")
     parser.add_argument("tarfile", help="A tarfile to print stats on.", type=str, nargs='+')
     args = parser.parse_args()
+
+    if args.json and args.human:
+        print("Options --json and --human are mutually exclusive.", file=stderr)
+        exit(2)
+
     tarstats(args.tarfile, args.json, args.totals)
 
 
