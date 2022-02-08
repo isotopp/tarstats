@@ -187,7 +187,7 @@ def tarstats(filenames: List[str], json: bool, totals: bool):
         try:
             stats = tarstat(name)
         except FileNotFoundError as e:
-            print(f"Can't read '{name}': {e}", file=sys.stderr)
+            print(f"Can't read '{name}': {e}", file=stderr)
             exit(1)
 
         # Print intermediate results
