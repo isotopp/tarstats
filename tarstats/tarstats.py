@@ -1,20 +1,17 @@
 #! /usr/bin/env python3
 
-import argparse
 import tarfile
-from sys import exit, stderr
 from json import dumps, JSONEncoder
-from typing import Any, List, Optional
 from os import stat
+from sys import exit, stderr
+from typing import Any, List
 
-args:Optional[argparse.Namespace] = None
 
 class StatsEncoder(JSONEncoder):
     """ Helper class for json.dumps(..., cls=StatsEncoder).
         Returns a JSON representation of a Stats object. """
 
     def default(self, obj: Any) -> Any:
-
         # Not checking args.human here on purpose - json is never intended for humans
         if isinstance(obj, Stats):
             return {
@@ -106,10 +103,9 @@ devices: {self.human_thousand_sep(self.devcounter)}
         res = str(number)
         # if it is > 1000, and below 999 Yotta, we are good
         if counter > 0 and counter < len(units):
-            res += units[counter-1]
+            res += units[counter - 1]
 
         return res
-
 
     def __add__(self, other: Any):
         """ This method allows us to add two `Stats` objects. The summary counters of `self`
@@ -204,24 +200,3 @@ def tarstats(filenames: List[str], json: bool, totals: bool):
             print(dumps(summary, cls=StatsEncoder))
         else:
             print(summary)
-
-
-def main():
-    global args # bah!
-
-    parser = argparse.ArgumentParser(description="Print some stats about tarfiles.")
-    parser.add_argument("-j", "--json", help="Print the stats as json.", action="store_true")
-    parser.add_argument("-H", "--human", help="Print numbers with rounded units or thousand separators", action="store_true")
-    parser.add_argument("-t", "--totals", help="Also print a total over all tarfiles.", action="store_true")
-    parser.add_argument("tarfile", help="A tarfile to print stats on.", type=str, nargs='+')
-    args = parser.parse_args()
-
-    if args.json and args.human:
-        print("Options --json and --human are mutually exclusive.", file=stderr)
-        exit(2)
-
-    tarstats(args.tarfile, args.json, args.totals)
-
-
-if __name__ == "__main__":
-    main()
